@@ -19,6 +19,8 @@ __version__ = '0.9'
 import json
 import datetime
 import copy
+import shutil
+import os
 
 class VQA:
 	def __init__(self, annotation_file=None, question_file=None):
@@ -34,32 +36,73 @@ class VQA:
 		self.qqa = {}
 		self.imgToQA = {}
 		if not annotation_file == None and not question_file == None:
-			print 'loading VQA annotations and questions into memory...'
+			print('loading VQA annotations and questions into memory...')
 			time_t = datetime.datetime.utcnow()
 			dataset = json.load(open(annotation_file, 'r'))
 			questions = json.load(open(question_file, 'r'))
-			print datetime.datetime.utcnow() - time_t
+			print(datetime.datetime.utcnow() - time_t)
 			self.dataset = dataset
 			self.questions = questions
 			self.createIndex()
 
+	def dumpData(self, qIds, annotation_file, question_file, source_captions, caption_file, img_dir, new_img_dir, data_subtype):
+		"""
+		Extracts questions defined by qIds and stores the respective annotations, questions, and captions.
+
+		:param qIds (list): list of question ids
+		:param annotation_file (string): where to store annotations
+		:param question_file (string): where to store question objects
+		:source_captions (string): where coco captions are stored
+		:caption_file (string): where to store caption objects for questions in qIds
+		:img_dir (string): directory of coco images
+		:new_img_dir (string): directory of extracted images
+		:data_subtype (string): data subtype
+		"""
+		# extract annotations and question objects
+		anns = [ann for ann in self.dataset['annotations'] if ann['question_id'] in qIds]
+		qs = [q for q in self.questions['questions'] if q['question_id'] in qIds]
+		dataset_copy = copy.deepcopy(self.dataset)
+		questions_copy = copy.deepcopy(self.questions)
+		dataset_copy['annotations'] = anns
+		questions_copy['questions'] = qs
+		json.dump(dataset_copy, open(annotation_file, 'w'))
+		json.dump(questions_copy, open(question_file, 'w'))
+
+		# extract image captions
+		imgs = [q['image_id'] for q in self.questions['questions'] if q['question_id'] in qIds]
+		source = json.load(open(source_captions, 'r'))
+		captions = [c for c in source['annotations'] if c['image_id'] in imgs]
+		json.dump(captions, open(caption_file, 'w'))
+
+		# create new image folder
+		if os.path.exists(new_img_dir):
+			os.rmdir(new_img_dir)
+		os.mkdir(new_img_dir)
+		for id in imgs:
+			imgFilename = 'COCO_' + data_subtype + '_'+ str(id).zfill(12) + '.jpg'
+			if os.path.isfile(img_dir + imgFilename):
+				shutil.copy(img_dir + imgFilename, new_img_dir + imgFilename)
+			else:
+				print("Error: " + str(id) + " not found")
+
 	def createIndex(self):
         # create index
-		print 'creating index...'
- 		imgToQA = {ann['image_id']: [] for ann in self.dataset['annotations']}
+		print('creating index...')
+		# dictionary comprehension of ids to empty arrays
+		imgToQA = {ann['image_id']: [] for ann in self.dataset['annotations']}
 		qa =  {ann['question_id']:       [] for ann in self.dataset['annotations']}
 		qqa = {ann['question_id']:       [] for ann in self.dataset['annotations']}
- 		for ann in self.dataset['annotations']:
-			imgToQA[ann['image_id']] += [ann]
-			qa[ann['question_id']] = ann
-		for ques in self.questions['questions']:
-  			qqa[ques['question_id']] = ques
-		print 'index created!'
+		for ann in self.dataset['annotations']:
+			imgToQA[ann['image_id']] += [ann] # add annotations to each image
+			qa[ann['question_id']] = ann # add annotations for each question id
+		for ques in self.questions['questions']: 
+			qqa[ques['question_id']] = ques # add questions to question id
+		print('index created!')
 
- 		# create class members
- 		self.qa = qa
+		# create class members
+		self.qa = qa
 		self.qqa = qqa
- 		self.imgToQA = imgToQA
+		self.imgToQA = imgToQA
 
 	def info(self):
 		"""
@@ -67,7 +110,7 @@ class VQA:
 		:return:
 		"""
 		for key, value in self.datset['info'].items():
-			print '%s: %s'%(key, value)
+			print('%s: %s'%(key, value))
 
 	def getQuesIds(self, imgIds=[], quesTypes=[], ansTypes=[]):
 		"""
@@ -89,7 +132,7 @@ class VQA:
 			else:
  				anns = self.dataset['annotations']
 			anns = anns if len(quesTypes) == 0 else [ann for ann in anns if ann['question_type'] in quesTypes]
- 			anns = anns if len(ansTypes)  == 0 else [ann for ann in anns if ann['answer_type'] in ansTypes]
+			anns = anns if len(ansTypes)  == 0 else [ann for ann in anns if ann['answer_type'] in ansTypes]
 		ids = [ann['question_id'] for ann in anns]
 		return ids
 
@@ -138,9 +181,9 @@ class VQA:
 			return 0
 		for ann in anns:
 			quesId = ann['question_id']
-			print "Question: %s" %(self.qqa[quesId]['question'])
+			print("Question: %s" %(self.qqa[quesId]['question']))
 			for ans in ann['answers']:
-				print "Answer %d: %s" %(ans['answer_id'], ans['answer'])
+				print("Answer %d: %s" %(ans['answer_id'], ans['answer']))
 		
 	def loadRes(self, resFile, quesFile):
 		"""
@@ -156,7 +199,7 @@ class VQA:
 		res.dataset['data_subtype'] = copy.deepcopy(self.questions['data_subtype'])
 		res.dataset['license'] = copy.deepcopy(self.questions['license'])
 
-		print 'Loading and preparing results...     '
+		print('Loading and preparing results...     ')
 		time_t = datetime.datetime.utcnow()
 		anns    = json.load(open(resFile))
 		assert type(anns) == list, 'results is not an array of objects'
@@ -171,7 +214,7 @@ class VQA:
 			ann['image_id']      = qaAnn['image_id'] 
 			ann['question_type'] = qaAnn['question_type']
 			ann['answer_type']   = qaAnn['answer_type']
-		print 'DONE (t=%0.2fs)'%((datetime.datetime.utcnow() - time_t).total_seconds())
+		print('DONE (t=%0.2fs)'%((datetime.datetime.utcnow() - time_t).total_seconds()))
 
 		res.dataset['annotations'] = anns
 		res.createIndex()
