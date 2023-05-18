@@ -1,5 +1,9 @@
 Python API and Evaluation Code for v2.0 and v1.0 releases of the VQA dataset.
 ===================
+## My Updates ##
+Added vqaExtractor.py and modified vqaDemo.py to support the extraction of an arbitrary subset of questions, their annotations, and their images.
+For the extractor to work, COCO captions should be added to ./Images/mscoco.
+
 ## VQA v2.0 release ##
 This release consists of
 - Real 
