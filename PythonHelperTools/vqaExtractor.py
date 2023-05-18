@@ -25,6 +25,6 @@ ansTypes = ('yes/no', 'number', 'other')
 qs = []
 for ansType in ansTypes:
     qIds = vqa.getQuesIds(ansTypes=ansType);   
-    randomQ = random.choices(qIds, k = 50) # number of questions of each type to extract
+    randomQ = random.choices(qIds, k = 200) # number of questions of each type to extract
     qs += randomQ
 vqa.dumpData(qs, newAnnFile, newQuesFile, sourceCaptions, newCaptions, imgDir, newImgDir, dataSubType)

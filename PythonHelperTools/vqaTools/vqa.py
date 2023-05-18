@@ -71,12 +71,20 @@ class VQA:
 		# extract image captions
 		imgs = [q['image_id'] for q in self.questions['questions'] if q['question_id'] in qIds]
 		source = json.load(open(source_captions, 'r'))
-		captions = [c for c in source['annotations'] if c['image_id'] in imgs]
+		# captions = [c for c in source['annotations'] if c['image_id'] in imgs]
+		captions = {}
+		for c in source['annotations']:
+			id = c['image_id']
+			if id in imgs:
+				if id not in captions:
+					captions[id] = "Futuristic. "
+				captions[id] += c['caption'] + " "
 		json.dump(captions, open(caption_file, 'w'))
+		print(len(captions))
 
 		# create new image folder
 		if os.path.exists(new_img_dir):
-			os.rmdir(new_img_dir)
+			shutil.rmtree(new_img_dir)
 		os.mkdir(new_img_dir)
 		for id in imgs:
 			imgFilename = 'COCO_' + data_subtype + '_'+ str(id).zfill(12) + '.jpg'
