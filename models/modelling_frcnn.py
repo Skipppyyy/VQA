@@ -35,6 +35,8 @@ def norm_box(boxes, raw_sizes):
         normalized_boxes = boxes.copy()
     else:
         normalized_boxes = boxes.clone()
+    # print(normalized_boxes.shape)
+    # print(raw_sizes.shape)
     normalized_boxes[:, :, (0, 2)] /= raw_sizes[:, 1]
     normalized_boxes[:, :, (1, 3)] /= raw_sizes[:, 0]
     return normalized_boxes
